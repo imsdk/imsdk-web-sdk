@@ -45,4 +45,4 @@ imCli.sendText( userMsg, function(data, params){
 
 
 ## 更多信息
-[IMSDK官方文档|http://docs.imsdk.im/display/dev/Web+SDK]
+[IMSDK官方文档](http://docs.imsdk.im/display/dev/Web+SDK)
