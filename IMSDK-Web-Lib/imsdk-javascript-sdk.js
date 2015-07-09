@@ -12,7 +12,7 @@
 		onSystemMsgReceived : null
 	};
 
-	win.IMSDK = function( app_key, token, listeners ) {
+	win.IMSDK = function( app_key, listeners ) {
 		if ( app_key==null || typeof(app_key)!=="string" || app_key.length==0 ) {
 			return ;
 		}
@@ -33,9 +33,8 @@
 			 	'withCredentials': true
 			 },
 			'beforeSend' : function(xhr, settings){
-				$.extend( settings['headers'], {
-					'x-rid' :  Date.now()
-				} );
+				xhr.setRequestHeader('x-rid', Date.now());
+				xhr.setRequestHeader('x-imsdk-id', this.imsdk_id);
 			}
 		}, win.Global_Config );
 
@@ -44,6 +43,7 @@
 		var PROTOCOLS = 'http://';
 		var VERSION = '/v1';
 		var HOST = PROTOCOLS + 'rest.imsdk.im' + VERSION;
+		HOST = PROTOCOLS + 'dev.sdk.imdingtu.com:81' + VERSION;
 
 		$.extend(this, _listeners, listeners);
 		var _isLogging = false;
@@ -57,6 +57,7 @@
 		var $this = this;
 
 		this.app_key = app_key;
+		this.imsdk_id = "";
 
 		var APP_URL = HOST;
 
@@ -70,15 +71,11 @@
 			NEW_MSG : APP_URL+ '/onlinemsg'
 		};
 
-
-		$this.token = token;
-
-
 		this.setLogging = function(isLogging) {
 			_isLogging = isLogging==true ? true : false;
 		};
 
-		this.register = function( userInfo, onRegSuccess, onRegFailed  ) {
+		this.register = function( token, userInfo, onRegSuccess, onRegFailed  ) {
 
 			(onRegSuccess && typeof(onRegSuccess)=='function') ||  ( onRegSuccess=function(){} );
 			(onRegFailed && typeof(onRegFailed)=='function') ||  ( onRegFailed=function(){} );
@@ -88,9 +85,14 @@
 				return;
 			};
 
+			if ( typeof(token)!=='string' || token.length==0 ) {
+				onRegFailed.call( $this, 4, 'Token 不能为空' );
+				return;
+			};
+
 			var params = $.extend( userInfo, {
-				'token' : $this.token,
-				'app_key' : $this.app_key,
+				'token' : token,
+				'app_key' : this.app_key,
 				'nick_name' : '',
 				'photo' : ''
 			});
@@ -99,11 +101,10 @@
 				this, 
 				URLS.REGISTER, 
 				params,
-				function(data){
+				function(data, params){
 					_isLogin = true;
 
 					this.current['cid'] = data;
-					__openLongPolling.call(this);
 
 					onRegSuccess.call( this, data );
 				},
@@ -134,7 +135,10 @@
 				function(data){
 					_isLogin = true;
 
-					this.current['cid'] = data;
+					this.imsdk_id = data['IMSDKID'];
+					delete data['IMSDKID'];
+
+					$.extend(this.current, data);
 					__openLongPolling.call(this);
 
 					onLoginSuccess.call( this, data );
