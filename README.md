@@ -9,7 +9,9 @@ IMSDK Web SDK V1 版本，使用传统的 ajax long polling 的方式，兼容�
 
 ## 新手上路
 ### 一、获取 SDK
-  官方下载：敬请期待
+  
+  官方下载：http://www.imsdk.im/
+  
   github：https://github.com/imsdk/imsdk-web-sdk
 
 ### 二、初始化
