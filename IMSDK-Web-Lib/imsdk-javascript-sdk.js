@@ -43,7 +43,6 @@
 		var PROTOCOLS = 'http://';
 		var VERSION = '/v1';
 		var HOST = PROTOCOLS + 'rest.imsdk.im' + VERSION;
-		/*HOST = PROTOCOLS + 'dev.sdk.imdingtu.com:81' + VERSION;*/
 
 		$.extend(this, _listeners, listeners);
 		var _isLogging = false;
