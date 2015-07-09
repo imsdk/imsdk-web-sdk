@@ -19,7 +19,7 @@ IMSDK Web SDK V1 版本，使用传统的 ajax long polling 的方式，兼容�
 
   该 Lib 依赖于jquery，开发时使用版本为 jquery-2.1.4.min.js，可从下载到的文件中得到。
 
-  移动端涉及到的表情文件可于 Lib 目录中找到，目前 Web 端未做处理
+  移动端涉及到的表情包 IMSysface 可于 Lib 目录中找到，目前 Web 端未做处理
 
 ### 二、初始化
 ```
