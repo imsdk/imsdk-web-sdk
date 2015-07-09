@@ -8,7 +8,9 @@ IMSDK Web SDK V1 版本，使用传统的 ajax long polling 的方式，兼容�
 
 通过 Web SDK 可以方便实现注册、登录、收发消息
 
-下载到的包里包含 Demo 和 Lib 两个目录。
+下载到的包里包含 Demo 和 Lib 两个目录，其中 Demo 目录为一个简单的演示页面。
+
+该 Lib 依赖于jquery，开发时使用版本为 jquery-2.1.4.min.js，可从下载到的文件中得到。
 
 ## 新手上路
 ### 一、获取 SDK
