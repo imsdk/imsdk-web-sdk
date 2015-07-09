@@ -18,7 +18,7 @@
 		}
 
 		$.extend(this, {
-			'VERSION' : '1.0'
+			'VERSION' : '0.0.1'
 		});
 
 		var GLOBAL_SETTINGS = $.extend({
