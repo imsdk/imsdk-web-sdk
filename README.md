@@ -23,7 +23,7 @@ IMSDK Web SDK V1 版本，使用传统的 ajax long polling 的方式，兼容�
 
 ### 二、初始化
 ```
-var imCli = new IMSDK( '00b6413a92d4c1c84ad99e0a', '{token}', {
+var imCli = new IMSDK( '00b6413a92d4c1c84ad99e0a', {
     onInitialized : function( appEnv ){
         console.info( '初始化环境完成，当前应用：' + appEnv.appKe
     },
