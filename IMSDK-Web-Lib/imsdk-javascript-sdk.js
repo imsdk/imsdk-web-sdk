@@ -9,6 +9,9 @@
 		onTextReceived : null,
 		onImageReceived : null,
 		onVoiceReceived : null,
+		onTeamTextReceived : null,
+		onTeamImageReceived : null,
+		onTeamVoiceReceived : null,
 		onSystemMsgReceived : null
 	};
 
@@ -16,6 +19,8 @@
 		if ( app_key==null || typeof(app_key)!=="string" || app_key.length==0 ) {
 			return ;
 		}
+
+		var $this = this;
 
 		$.extend(this, {
 			'VERSION' : '0.0.1'
@@ -38,7 +43,7 @@
 			}
 		}, win.Global_Config );
 
-		$.ajaxSetup( GLOBAL_SETTINGS );
+
 
 		var PROTOCOLS = 'http://';
 		var VERSION = '/v1';
@@ -53,7 +58,6 @@
 			'nick_name' : null
 		};
 
-		var $this = this;
 
 		this.app_key = app_key;
 		this.imsdk_id = "";
@@ -67,7 +71,8 @@
 			GET_USER : APP_URL + '/user/{cid}',
 			FRIENDS : APP_URL + '/friends',
 			MSG : APP_URL+ '/msg',
-			NEW_MSG : APP_URL+ '/onlinemsg'
+			NEW_MSG : APP_URL+ '/online',
+			GET_GROUP : APP_URL + '/groups/{tid}'
 		};
 
 		this.setLogging = function(isLogging) {
@@ -169,13 +174,53 @@
 			return _isLogin;
 		}
 
+		var USER_CACHE = {};
 		this.getUserInfo = function(cid) {
-			var url = URLS.GET_USER.replace('{user}', this.current.cid);
-			return __getData(
-				this,
-				url,
-				{}
-			);
+			var ui = null;
+			if (!(ui = USER_CACHE[cid])) {
+				try{
+				var url = URLS.GET_USER.replace('{cid}', cid);
+				var data = __getData(
+					this,
+					url,
+					{}
+				);
+
+				if (data.code==0){
+					USER_CACHE[cid]  = ui = data.data;
+				}else {
+					ui = {'cid':cid};
+				}
+			}catch(e){
+				ui = {'cid':cid};
+			}
+			}
+
+			return ui;
+		}
+		var TEAM_CACHE = {};
+		this.getGroup = function(tid) {
+			var ti = null;
+			if (!(ti = TEAM_CACHE[tid])) {
+				try{
+					var url = URLS.GET_GROUP.replace('{tid}', tid);
+					var data = __getData(
+						this,
+						url,
+						{}
+					);
+
+					if (data.code==0){
+						TEAM_CACHE[tid]  = ti = data.data[0];
+					} else {
+						ti = {'group_id': tid};
+					}
+				} catch(e){
+					ti = { 'group_id':tid };
+				}
+			}
+
+			return ti;
 		}
 
 		this.getFriends = function(cid) {
@@ -227,7 +272,7 @@
 		}
 
 		var __aPostData = function(ctx, url, params, onSuccess, onFailed ) {
-			$.ajax( {
+			var pkg = __buildPkg({
 				url : url, 
 				data : win.IMSDK.ParamsBuilder.buildPostData(params),
 				context : ctx || this,
@@ -240,14 +285,16 @@
 							onFailed.call( $this, data['status'], data['error_msg'], params );
 						}
 					} catch ( e ) {
-						onFailed.call( $this, -1, e );
+						onFailed.call( $this, -1, '请求应答异常' );
 					}
 				}
-			} );
+			});
+
+			$.ajax( pkg ) ;
 		};
 		var __getData = function( ctx, url, params ) {
 			var result = null;
-			$.ajax( {
+			var pkg =  __buildPkg({
 				url : url, 
 				data : params,
 				type: 'GET',
@@ -265,7 +312,8 @@
 						result = { 'code':-1, 'error_msg':e };
 					}
 				}
-			} );
+			});
+			$.ajax( pkg );
 
 			return result;
 		}
@@ -280,9 +328,10 @@
 
 			var url = URLS.NEW_MSG;
 
-			$.ajax( {
+			var pkg = __buildPkg({
 				url : url, 
 				data : {},
+				type : 'GET',
 				context : $this,
 				complete: function( jqXHR, textStatus ) {
 					/*console.log('heart beat - ' + textStatus + '-' + Date.now()); */
@@ -293,12 +342,11 @@
 						switch ( data['status'] ) {
 						case 0:
 							var msgPkgs = data['data'];
-							$.each(msgPkgs, function(i, n){
-								var pkgType = n.type;
-								var msgList = n.data;
+							$.each(msgPkgs, function(i, msg){
+								var pkgType = msg.type;
 								switch (pkgType){
 								case 'p2p':
-									$.each(msgList, function(j, msg){
+									try{
 										switch(msg['msg_type']){
 										case 'voice':
 											$this.onVoiceReceived
@@ -315,8 +363,14 @@
 											&& typeof($this.onTextReceived) === 'function'
 											&& $this.onTextReceived.call( $this, msg );
 											break;
-										}
-									});
+										};
+									} catch(e){
+
+									}
+									break;
+								case 'team':
+									$($this).trigger('team.msg.recv', msg);
+									break;
 								}
 							});
 
@@ -341,8 +395,55 @@
 						__openLongPolling.call( $this );
 					}
 				}
-			} );
+			});
+			$.ajax(pkg);
 		}
+
+		var __buildPkg = function(p){
+			var temp  = {}
+			$.extend( true, temp, GLOBAL_SETTINGS,  p);
+			return temp;
+		}
+
+
+		$($this).bind('team.msg.recv', function(ent, teamMsg){
+			try {
+				var teamId = teamMsg['to_team_id'];
+				var sendTime = teamMsg['send_time'];
+				var content = teamMsg['content'];
+				var fromCid = teamMsg['from_cid'];
+				var msgType = teamMsg['msg_type'];
+
+				var fromUser = this.getUserInfo(fromCid);
+				var teamInfo = this.getGroup(teamId);
+				switch(msgType){
+				case 'voice':
+					this.onTeamVoiceReceived
+					&& typeof(this.onTeamVoiceReceived) === 'function'
+					&& this.onTeamVoiceReceived.call( this, msg );
+					break;
+				case 'img':
+					this.onTeamImageReceived
+					&& typeof(this.onTeamImageReceived) === 'function'
+					&& this.onTeamImageReceived.call( this, msg );
+					break;
+				default:
+					this.onTeamTextReceived
+					&& typeof(this.onTeamTextReceived) === 'function'
+					&& this.onTeamTextReceived.call( this, 
+						fromUser,
+						teamInfo,
+						new Date(sendTime*1000),
+						content
+					 );
+					break;
+				};
+			} catch(e){
+
+			}
+		});
+
+
 
 		this.onInitialized 
 		&& typeof(this.onInitialized)==='function' 
