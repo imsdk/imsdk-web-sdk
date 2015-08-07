@@ -93,6 +93,7 @@
 					<button id='btnReg' class='btn btn-danger'>注册</button>
 					<button id='btnLogin' class='btn btn-success'>登录</button>
 					<button id='btnLogout' class='btn btn-default'>登出</button>
+					<button id='btnUser' class='btn btn-info after-login disabled '>获取当前用户信息</button>
 					<!--<button id='btnFriends' class='btn btn-info after-login disabled '>获取好友列表</button>
 					<button id='btnGroups' class='btn btn-info after-login disabled'>获取群组列表</button>-->
 				</div>
@@ -149,9 +150,21 @@
 					onTextReceived : function(data){
 						try {
 							console.log('text recv - ' + data );
-							$content.append( '<a class="link-userinfo" href="#">' + data['from_cid'] + '</a>:' + data['content'] + '<br />');
+							$content.append( '<a id="u-' + data.from_cid + '" class="link-userinfo" href="#">' + data['from_cid'] + '</a>:' + data['content'] + '<br />');
 						} catch(e){
 							console.error('parse msg[' + data + '] error - ' + e);
+						}
+					},
+					onTeamTextReceived : function(fromUser,groupInfo, sendTime, content){
+						try {
+							console.log('text recv - ' + content );
+							$content.append( 
+								'来自群 <a id="t-' + groupInfo.group_id + '" class="link-groupinfo" href="#">' + (groupInfo.group_name || groupInfo.group_id)+ '</a> ' +
+								'的 <a id="u-' + fromUser.cid + '" class="link-userinfo" href="#">' + (fromUser.nick_name || fromUser.cid) + '</a> ' +
+								' - ' + sendTime.toLocaleString() +
+								': ' + content + '<br />');
+						} catch(e){
+							console.error('parse msg[' + content + '] error - ' + e);
 						}
 					},
 					onImageReceived : function(data){
@@ -221,6 +234,14 @@
 				return false;
 			});
 
+			$('#btnUser').click(function(){
+				var userInfo = imCli.getUserInfo( $('#iptUser').val() );
+
+				console.log(userInfo);
+				
+				$content.append(  ' 获取' + cid + '的信息：' +  JSON.stringify(userInfo) + '<br />' );
+			});
+
 			$('#btnMsgSent').click(function(){
 				var target = $('#iptTarget').val();
 				var msg = $('#iptMsg').val();
@@ -262,10 +283,24 @@
 
 			$('#msg-list').on('click', 'a.link-userinfo', function(){
 
-				var cid = $(this).text();
+				var cid = $(this).attr('id').replace('u-', '');
 				var user = imCli.getUserInfo(cid);
 
 				$content.append(JSON.stringify(user) + '<br />');
+
+				$('#iptTargetType').val('user');
+				$('#iptTarget').val(cid);
+			});
+
+			$('#msg-list').on('click', 'a.link-groupinfo', function(){
+
+				var tid = $(this).attr('id').replace('t-', '');
+				var team = imCli.getGroup(tid);
+
+				$content.append(JSON.stringify(team) + '<br />');
+
+				$('#iptTargetType').val('team')
+				$('#iptTarget').val(tid);
 			});
 		});
 		</script>
